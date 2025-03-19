@@ -1,0 +1,88 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36" version="26.1.0">
+  <diagram name="Страница — 1" id="uHwiHj5tq-joKNicM2Pw">
+    <mxGraphModel dx="1018" dy="550" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="wmRzX6LVK5VPZMn1fTbo-1" value="DB" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" vertex="1" parent="1">
+          <mxGeometry x="670" y="360" width="90" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="wmRzX6LVK5VPZMn1fTbo-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="wmRzX6LVK5VPZMn1fTbo-2" target="wmRzX6LVK5VPZMn1fTbo-3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="320" y="290" />
+              <mxPoint x="320" y="290" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wmRzX6LVK5VPZMn1fTbo-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="wmRzX6LVK5VPZMn1fTbo-2" target="wmRzX6LVK5VPZMn1fTbo-7">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="235" y="110" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wmRzX6LVK5VPZMn1fTbo-2" value="frontend" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="200" width="70" height="300" as="geometry" />
+        </mxCell>
+        <mxCell id="wmRzX6LVK5VPZMn1fTbo-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="wmRzX6LVK5VPZMn1fTbo-3" target="wmRzX6LVK5VPZMn1fTbo-7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="wmRzX6LVK5VPZMn1fTbo-11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="wmRzX6LVK5VPZMn1fTbo-3" target="wmRzX6LVK5VPZMn1fTbo-2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="320" y="430" />
+              <mxPoint x="320" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wmRzX6LVK5VPZMn1fTbo-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="wmRzX6LVK5VPZMn1fTbo-3" target="wmRzX6LVK5VPZMn1fTbo-8">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="620" y="230" />
+              <mxPoint x="620" y="230" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wmRzX6LVK5VPZMn1fTbo-13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="wmRzX6LVK5VPZMn1fTbo-3" target="wmRzX6LVK5VPZMn1fTbo-1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="650" y="405" />
+              <mxPoint x="650" y="405" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wmRzX6LVK5VPZMn1fTbo-3" value="&lt;div&gt;&lt;br&gt;&lt;/div&gt;backend service" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="370" y="200" width="220" height="300" as="geometry" />
+        </mxCell>
+        <mxCell id="wmRzX6LVK5VPZMn1fTbo-4" value="Регистрация,&amp;nbsp;&lt;div&gt;аутентификация,&lt;/div&gt;&lt;div&gt;получение Bearer токена&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="250" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="wmRzX6LVK5VPZMn1fTbo-6" value="Запрос на генерацию картинки&lt;div&gt;Место в очереди&lt;/div&gt;&lt;div&gt;Получение одной картинки&lt;/div&gt;&lt;div&gt;Получение множества картинок&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="320" width="180" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="wmRzX6LVK5VPZMn1fTbo-7" value="Хранилище картинок" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="377" y="70" width="206" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="wmRzX6LVK5VPZMn1fTbo-14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="wmRzX6LVK5VPZMn1fTbo-8" target="wmRzX6LVK5VPZMn1fTbo-7">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="715" y="110" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wmRzX6LVK5VPZMn1fTbo-15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="wmRzX6LVK5VPZMn1fTbo-8" target="wmRzX6LVK5VPZMn1fTbo-3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="610" y="270" />
+              <mxPoint x="610" y="270" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wmRzX6LVK5VPZMn1fTbo-8" value="python-generation-node&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Генерация картинки&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Сохранение в хранилище&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="638.75" y="200" width="152.5" height="100" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
