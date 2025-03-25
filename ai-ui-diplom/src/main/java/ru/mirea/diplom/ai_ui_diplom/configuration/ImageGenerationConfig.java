@@ -1,10 +1,11 @@
 package ru.mirea.diplom.ai_ui_diplom.configuration;
 
+import lombok.Data;
 import lombok.Getter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
-@Getter
+@Data
 @Configuration
 @ConfigurationProperties(prefix = "image.generation")
 public class ImageGenerationConfig {

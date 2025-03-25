@@ -1,11 +1,13 @@
 package ru.mirea.diplom.ai_ui_diplom.model;
 
 import jakarta.validation.constraints.*;
+import lombok.Builder;
 import lombok.Data;
 import org.springframework.validation.annotation.Validated;
 
 @Data
 @Validated
+@Builder
 public class ImageGenerationRequest {
     @NotBlank
     private String prompt;
