@@ -16,21 +16,20 @@ async def create_image(
         if device == "auto":
             device = "cuda" if torch.cuda.is_available() else "cpu"
             
-        output_path = generate_image(
-            prompt=request.prompt,
-            output_path=request.output_path,
-            model_path=request.model_path,
-            num_inference_steps=request.num_inference_steps,
-            guidance_scale=request.guidance_scale,
-            height=request.height,
-            width=request.width,
-            device=device
-        )
+        # output_path = generate_image(
+        #     prompt=request.prompt,
+        #     output_path=request.output_path,
+        #     model_path=request.model_path,
+        #     num_inference_steps=request.num_inference_steps,
+        #     guidance_scale=request.guidance_scale,
+        #     height=request.height,
+        #     width=request.width,
+        #     device=device
+        # )
         
         return {
             "status": "success",
-            "image_path": output_path,
-            "device_used": device
+            "image_path": output_path
         }
         
     except Exception as e:

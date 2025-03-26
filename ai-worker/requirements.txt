@@ -4,3 +4,7 @@ python-multipart
 diffusers
 torch
 transformers
+python-jose[cryptography]
+passlib
+bcrypt
+pydantic[email]
