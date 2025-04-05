@@ -9,7 +9,6 @@ const generateForm = document.getElementById('generateForm');
 const registerForm = document.getElementById('registerForm');
 
 
-// Исправляем ошибку 'generateForm' null
 document.addEventListener('DOMContentLoaded', () => {
     initTheme();
     loadModels();
@@ -22,6 +21,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 generateForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    if (authToken == null){
+        showToastMessage("Требуется аутентификация");
+        return;
+    }
     
     const spinner = document.getElementById('spinner');
     const submitText = document.getElementById('submitText');
@@ -57,7 +61,7 @@ generateForm.addEventListener('submit', async (e) => {
         }
 
         const result = await response.json();
-        showSuccess(`Изображение "${formData.prompt}" создано!`);
+        showToastMessage(`Изображение "${formData.prompt}" создано!`);
         
     } catch (error) {
         console.error('Ошибка генерации:', error);
@@ -144,7 +148,7 @@ generateForm.addEventListener('submit', async (e) => {
         }
     }
 
-    function showSuccess(message) {
+    function showToastMessage(message) {
         document.getElementById('toastMessage').textContent = message;
         notificationToast.show();
     }

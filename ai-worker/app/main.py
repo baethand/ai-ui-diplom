@@ -4,7 +4,7 @@ from app.routers import images
 from app.routers import models
 from app.routers import auth
 
-app = FastAPI(title="Stable Diffusion API")
+app = FastAPI(title="ai-worker generation image")
 
 app.add_middleware(
     CORSMiddleware,
