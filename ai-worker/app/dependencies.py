@@ -3,13 +3,9 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from pydantic import BaseModel
+from app.config import settings
 
 security = HTTPBearer()
-
-# Конфигурация
-SECRET_KEY = "your-secret-key-here"  # Замените на реальный секретный ключ
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 180
 
 class TokenData(BaseModel):
     username: str | None = None
@@ -24,7 +20,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     
     try:
         # Декодируем и проверяем токен
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         username: str = payload.get("sub")
         isUser: bool = payload.get("isUser")
         if username is None or isUser is False:

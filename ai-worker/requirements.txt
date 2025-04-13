@@ -9,3 +9,6 @@ passlib
 bcrypt
 pydantic[email]
 sqlalchemy
+minio
+pydantic-settings
+psycopg2

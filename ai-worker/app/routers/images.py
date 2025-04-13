@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 import torch
-from app.services.image_service import generate_image
+from app.services.ImageGenerationService import image_generator
 from app.dependencies import get_current_user
 from app.models.schemas import ImageGenerationRequest
 
@@ -9,6 +9,7 @@ router = APIRouter(prefix="/api/v1", tags=["image_generation"])
 @router.post("/generate-image")
 async def create_image(
     request: ImageGenerationRequest,
+    background_tasks: BackgroundTasks,
     user: str = Depends(get_current_user)
 ):
     try:
@@ -16,21 +17,24 @@ async def create_image(
         if device == "auto":
             device = "cuda" if torch.cuda.is_available() else "cpu"
             
-        # output_path = generate_image(
-        #     prompt=request.prompt,
-        #     output_path=request.output_path,
-        #     model_path=request.model_path,
-        #     num_inference_steps=request.num_inference_steps,
-        #     guidance_scale=request.guidance_scale,
-        #     height=request.height,
-        #     width=request.width,
-        #     device=device
-        # )
-        
-        return {
-            "status": "success",
-            "image_path": output_path
-        }
+        if request.background:
+            background_tasks.add_task(
+                image_generator.generate,
+                request.prompts,
+                request.num_steps,
+                request.guidance,
+                request.height,
+                request.width
+            )
+            return {"message": "Generation started in background"}
+    
+        results = await image_generator.generate(
+            request.prompts,
+            request.num_steps,
+            request.guidance,
+            request.height,
+            request.width
+        )
         
     except Exception as e:
         raise HTTPException(

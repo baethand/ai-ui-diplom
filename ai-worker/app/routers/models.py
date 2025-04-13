@@ -1,10 +1,5 @@
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import JSONResponse  # Добавьте этот импорт
-from pydantic import BaseModel, conint, confloat
-from typing import Optional
-import logging
-from datetime import datetime
-import uuid
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix="/api/v1", tags=["models"])
 

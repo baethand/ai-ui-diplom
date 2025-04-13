@@ -1,136 +1,74 @@
-from datetime import datetime, timedelta
-from typing import Optional
-
 from fastapi import APIRouter, Depends, HTTPException, status, Body
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jose import JWTError, jwt
-from passlib.context import CryptContext
-from ..models.user_classes import *
-
-# Конфигурация
-SECRET_KEY = "your-secret-key-here"  # Замените на реальный секретный ключ
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 180
-
-
-
-# Имитация базы данных
-fake_users_db = {
-    "johndoe": {
-        "username": "johndoe",
-        "full_name": "John Doe",
-        "email": "johndoe@example.com",
-        "hashed_password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",  # "secret"
-        "disabled": False,
-    }
-}
-
-# Настройки безопасности
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/token")
+from fastapi.security import OAuth2PasswordRequestForm
+from datetime import datetime
+from app.services.AuthService import auth_service
+from app.services.DBService import db_service
+from app.models.user import UserCreate, Token, UserInDB
+from app.models.base import User
 
 router = APIRouter(prefix="/api/v1", tags=["auth"])
 
-# Вспомогательные функции
-def verify_password(plain_password: str, hashed_password: str):
-    return pwd_context.verify(plain_password, hashed_password)
+@router.post("/register", response_model=Token)
+async def register(user_data: UserCreate):
+    with db_service.get_session() as session:
+        # Проверка существующего пользователя
+        if session.query(User).filter(User.username == user_data.username).first():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username already registered"
+            )
 
-def get_password_hash(password: str):
-    return pwd_context.hash(password)
-
-def get_user(db, username: str):
-    if username in db:
-        user_dict = db[username]
-        return UserInDB(**user_dict)
-
-def authenticate_user(fake_db, username: str, password: str):
-    user = get_user(fake_db, username)
-    if not user:
-        return False
-    if not verify_password(password, user.hashed_password):
-        return False
-    return user
-
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
-
-async def get_current_user(token: str = Depends(oauth2_scheme)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-        token_data = TokenData(username=username)
-    except JWTError:
-        raise credentials_exception
-    user = get_user(fake_users_db, username=token_data.username)
-    if user is None:
-        raise credentials_exception
-    return user
-
-async def get_current_active_user(current_user: User = Depends(get_current_user)):
-    if current_user.disabled:
-        raise HTTPException(status_code=400, detail="Inactive user")
-    return current_user
-
-# Роуты
-@router.post("/register", response_model=User)
-async def register_user(user_data: RegisterRequest = Body(...)):
-    if user_data.username in fake_users_db:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already registered"
+        # Создание нового пользователя
+        hashed_password = auth_service.get_password_hash(user_data.password)
+        new_user = User(
+            username=user_data.username,
+            email=user_data.email,
+            hashed_password=hashed_password,
+            created_at=datetime.utcnow()
         )
-    
-    # Хеширование пароля
-    hashed_password = get_password_hash(user_data.password)
-    
-    # Сохранение пользователя (в реальном приложении - в БД)
-    fake_users_db[user_data.username] = {
-        "username": user_data.username,
-        "email": user_data.email,
-        "hashed_password": hashed_password,
-        "disabled": False
-    }
+        
+        session.add(new_user)
+        session.commit()
+        session.refresh(new_user)
 
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user_data.username, "isUser": True}, expires_delta=access_token_expires
-    )
+        # Генерация токенов
+        user_dict = UserInDB.from_orm(new_user).dict()
+        access_token = await auth_service.create_access_token(user_dict)
+        refresh_token = await auth_service.create_refresh_token(user_dict)
 
-    return {
-        "username": user_data.username,
-        "access_token": access_token,
-        "token_type": "bearer"
-    }
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer"
+        }
 
 @router.post("/token", response_model=Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = authenticate_user(fake_users_db, form_data.username, form_data.password)
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = await auth_service.authenticate_user(form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username, "isUser": True}, expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
+    
+    # Обновляем время последнего входа
+    with db_service.get_session() as session:
+        db_user = session.query(User).filter(User.username == user.username).first()
+        db_user.last_login = datetime.utcnow()
+        session.commit()
 
-@router.get("/users/me", response_model=User)
-async def read_users_me(current_user: User = Depends(get_current_active_user)):
+    # Генерация токенов
+    user_dict = user.dict()
+    access_token = await auth_service.create_access_token(user_dict)
+    refresh_token = await auth_service.create_refresh_token(user_dict)
+
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
+
+@router.get("/users/me", response_model=UserInDB)
+async def read_users_me(current_user: UserInDB = Depends(auth_service.get_current_active_user)):
     return current_user
