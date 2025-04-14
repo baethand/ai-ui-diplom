@@ -54,20 +54,37 @@ class ImageGenerator:
         height: int = int(settings.DEFAULT_HEIGHT),
         width: int = int(settings.DEFAULT_WIDTH)
     ) -> str:
-        try:
-            image = self.pipe(
-                prompt,
-                num_inference_steps=num_steps,
-                guidance_scale=guidance,
-                height=height,
-                width=width
-            ).images[0]
+        pipe = StableDiffusionPipeline.from_pretrained(
+        self.model_path,
+        torch_dtype=torch.float16,
+        low_cpu_mem_usage=True
+        )
+        pipe = pipe.to("cuda")
+        
+        image = pipe(
+            prompt,
+            num_inference_steps=num_steps,
+            guidance_scale=guidance,
+            height=height,
+            width=width
+        ).images[0]
+        
+        image.save(output_path)
+        return "good"
+        # try:
+        #     image = self.pipe(
+        #         prompt,
+        #         num_inference_steps=num_steps,
+        #         guidance_scale=guidance,
+        #         height=height,
+        #         width=width
+        #     ).images[0]
             
-            image.save(output_path)
-            return output_path
-        except Exception as e:
-            logger.error(f"Generation failed for '{prompt}': {e}")
-            raise
+        #     image.save(output_path)
+        #     return output_path
+        # except Exception as e:
+        #     logger.error(f"Generation failed for '{prompt}': {e}")
+        #     raise
 
     async def generate(
         self,

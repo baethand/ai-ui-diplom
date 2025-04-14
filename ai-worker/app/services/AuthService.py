@@ -48,9 +48,9 @@ class AuthService:
         to_encode.update({"exp": expire})
         return jwt.encode(to_encode, self.secret_key, algorithm=self.algorithm)
 
-    async def create_access_token(self, user_data: dict) -> str:
+    async def create_access_token(self, user_data: User) -> str:
         return self.create_token(
-            data={"sub": user_data.username, "isUser": True},
+            data={"sub": user_data.username, "disabled": user_data.disabled},
             expires_delta=self.access_token_expire
         )
 

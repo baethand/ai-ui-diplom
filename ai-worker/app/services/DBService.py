@@ -38,7 +38,7 @@ class DBService:
         """Инициализация подключения к БД"""
         try:
             db_url = self._get_safe_db_url()
-            logger.debug(f"Connecting to database with URL: {db_url[:50]}...")  # Логируем часть URL
+            logger.debug(f"Connecting to database with URL: {db_url[:50]}...")
             
             self.engine = create_engine(
                 db_url,

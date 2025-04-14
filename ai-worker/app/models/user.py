@@ -6,18 +6,19 @@ class UserBase(BaseModel):
     username: str
     email: EmailStr
 
-class UserCreate(UserBase):
+class UserCreateRequest(BaseModel):
+    username: str
+    email: EmailStr
     password: str
 
-class UserInDB(UserBase):
+class UserInDB(BaseModel):
     id: int
-    hashed_password: str
-    disabled: bool = False
+    username: str
+    email: EmailStr
+    password: str
+    disabled:bool
     created_at: datetime
-    last_login: Optional[datetime]
-
-    class Config:
-        orm_mode = True
+    last_login: datetime
 
 class Token(BaseModel):
     access_token: str

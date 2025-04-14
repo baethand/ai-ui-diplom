@@ -9,7 +9,7 @@ router = APIRouter(prefix="/api/v1", tags=["image_generation"])
 @router.post("/generate-image")
 async def create_image(
     request: ImageGenerationRequest,
-    background_tasks: BackgroundTasks,
+    # background_tasks: BackgroundTasks,
     user: str = Depends(get_current_user)
 ):
     try:
@@ -17,24 +17,37 @@ async def create_image(
         if device == "auto":
             device = "cuda" if torch.cuda.is_available() else "cpu"
             
-        if request.background:
-            background_tasks.add_task(
-                image_generator.generate,
-                request.prompts,
-                request.num_steps,
-                request.guidance,
-                request.height,
-                request.width
-            )
-            return {"message": "Generation started in background"}
-    
-        results = await image_generator.generate(
-            request.prompts,
-            request.num_steps,
-            request.guidance,
-            request.height,
-            request.width
+
+
+        result = image_generator._generate_single(
+            prompt=request.prompt,
+            output_path=request.output_path,
+            num_steps=request.num_inference_steps,
+            guidance=request.guidance_scale,
+            height=request.height,
+            width=request.width
         )
+        
+        return {"status": "success", "result": result}
+
+        # if request.background:
+        #     background_tasks.add_task(
+        #         image_generator.generate,
+        #         request.prompts,
+        #         request.num_steps,
+        #         request.guidance,
+        #         request.height,
+        #         request.width
+        #     )
+        #     return {"message": "Generation started in background"}
+    
+        # results = await image_generator.generate(
+        #     request.prompts,
+        #     request.num_steps,
+        #     request.guidance,
+        #     request.height,
+        #     request.width
+        # )
         
     except Exception as e:
         raise HTTPException(
