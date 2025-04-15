@@ -1,6 +1,7 @@
 import torch
 from diffusers import StableDiffusionPipeline
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
+from concurrent.futures import ProcessPoolExecutor
 from typing import List, Optional
 import logging
 from pathlib import Path
@@ -12,10 +13,10 @@ logger = logging.getLogger(__name__)
 class ImageGenerator:
 
     def __init__(self):
-        self.device = self._get_device()
+        self.device = "cuda"
         self.model_path = settings.MODEL_PATH
         self.pipe = self._load_model()
-        self.executor = ThreadPoolExecutor(max_workers=int(settings.MAX_WORKERS))
+        self.executor = ProcessPoolExecutor(max_workers=int(settings.MAX_WORKERS))
         self.save_dir = Path(settings.SAVE_DIR)
         self.save_dir.mkdir(exist_ok=True)
     
@@ -45,32 +46,31 @@ class ImageGenerator:
 
         return pipe
 
-    def _generate_single(
-        self,
-        prompt: str,
-        output_path: str,
-        num_steps: int = int(settings.DEFAULT_STEPS),
-        guidance: float = float(settings.DEFAULT_GUIDANCE),
-        height: int = int(settings.DEFAULT_HEIGHT),
-        width: int = int(settings.DEFAULT_WIDTH)
-    ) -> str:
-        pipe = StableDiffusionPipeline.from_pretrained(
-        self.model_path,
+def generate_single(
+    prompt: str,
+    output_path: str,
+    num_steps: int = int(settings.DEFAULT_STEPS),
+    guidance: float = float(settings.DEFAULT_GUIDANCE),
+    height: int = int(settings.DEFAULT_HEIGHT),
+    width: int = int(settings.DEFAULT_WIDTH)
+) -> str:
+    pipe = StableDiffusionPipeline.from_pretrained(
+        "stabilityai/stable-diffusion-2-1",
         torch_dtype=torch.float16,
         low_cpu_mem_usage=True
         )
-        pipe = pipe.to("cuda")
-        
-        image = pipe(
-            prompt,
-            num_inference_steps=num_steps,
-            guidance_scale=guidance,
-            height=height,
-            width=width
-        ).images[0]
-        
-        image.save(output_path)
-        return "good"
+    pipe = pipe.to("cuda")
+    
+    image = pipe(
+        prompt,
+        num_inference_steps=num_steps,
+        guidance_scale=guidance,
+        height=height,
+        width=width
+    ).images[0]
+    
+    image.save(output_path)
+    return "good"
         # try:
         #     image = self.pipe(
         #         prompt,

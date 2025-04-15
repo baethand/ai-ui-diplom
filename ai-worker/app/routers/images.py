@@ -1,56 +1,84 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException
 import torch
-from app.services.ImageGenerationService import image_generator
-from app.dependencies import get_current_user
 from app.models.schemas import ImageGenerationRequest
+from diffusers import StableDiffusionPipeline
+from fastapi import APIRouter, Depends, UploadFile, File
+from datetime import datetime
+from io import BytesIO
+from PIL import Image
+from app.services.MinioService import MinioService
+from app.services.DBService import db_service
+from app.models.base import User, Image
+from app.models.schemas import ImageGenerationRequest
+import logging
 
 router = APIRouter(prefix="/api/v1", tags=["image_generation"])
+minio = MinioService()
+log = logging.getLogger(__name__)
+
+pipe = StableDiffusionPipeline.from_pretrained(
+            "stabilityai/stable-diffusion-2-1",
+            torch_dtype=torch.float16,
+            low_cpu_mem_usage=True
+        )
+pipe = pipe.to("cuda")
 
 @router.post("/generate-image")
 async def create_image(
     request: ImageGenerationRequest,
-    # background_tasks: BackgroundTasks,
-    user: str = Depends(get_current_user)
+    # user: str = Depends(get_current_user) # ПОТОМ УБРАТЬ
 ):
     try:
-        device = request.device
-        if device == "auto":
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-            
-
-
-        result = image_generator._generate_single(
-            prompt=request.prompt,
-            output_path=request.output_path,
-            num_steps=request.num_inference_steps,
-            guidance=request.guidance_scale,
+        generated_image = pipe(
+            request.prompt,
+            num_inference_steps=request.num_inference_steps,
+            guidance_scale=request.guidance_scale,
             height=request.height,
             width=request.width
-        )
+        ).images[0]
         
-        return {"status": "success", "result": result}
+        # 2. Конвертация в BytesIO (файлоподобный объект)
+        img_byte_arr = BytesIO()
+        generated_image.save(img_byte_arr, format="PNG")
+        img_byte_arr.seek(0)  # Важно: перемотка в начало!
+        
+        # 3. Сохранение в MinIO
+        filename = f"generated_{datetime.now().timestamp()}.png"
+        minio.client.put_object(
+            bucket_name=minio.bucket,
+            object_name=filename,
+            data=img_byte_arr,  # Передаем BytesIO напрямую
+            length=img_byte_arr.getbuffer().nbytes,
+            content_type="image/png"
+        )
 
-        # if request.background:
-        #     background_tasks.add_task(
-        #         image_generator.generate,
-        #         request.prompts,
-        #         request.num_steps,
-        #         request.guidance,
-        #         request.height,
-        #         request.width
-        #     )
-        #     return {"message": "Generation started in background"}
-    
-        # results = await image_generator.generate(
-        #     request.prompts,
-        #     request.num_steps,
-        #     request.guidance,
-        #     request.height,
-        #     request.width
-        # )
+        
+        # 4. Запись в БД через контекстный менеджер
+        with db_service.get_session() as session:
+            db_image = Image(
+                user_id=1,
+                name=filename,
+                width=request.width,
+                height=request.height,
+                model="stable-diffusion-2.1",
+                prompt=request.prompt,
+                status="completed",
+                generated_at=datetime.utcnow(),
+            )
+            session.add(db_image)
+            session.commit()
+            session.refresh(db_image)
+
+            # Получаем URL только после коммита (если нужен ID)
+            image_url = minio.get_image_url(filename)
+        
+        return {
+            "status": "success",
+            "image_url": image_url,
+            "image_id": db_image.id,
+        }
         
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Image generation failed: {str(e)}"
-        )
+        if 'session' in locals():
+            session.rollback()
+        raise HTTPException(500, f"Error: {e}")

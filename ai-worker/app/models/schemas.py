@@ -1,6 +1,8 @@
 from pydantic import BaseModel
+from typing import Optional
 
 class ImageGenerationRequest(BaseModel):
+    seed: Optional[int] = 42
     prompt: str
     output_path: str = "generated_image.png"
     model_path: str = "stabilityai/stable-diffusion-2-1"
