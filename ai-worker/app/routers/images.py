@@ -1,15 +1,17 @@
-from fastapi import APIRouter, HTTPException
+from typing import Annotated
+from fastapi import APIRouter, Depends, HTTPException
 import torch
 from app.models.schemas import ImageGenerationRequest
 from diffusers import StableDiffusionPipeline
-from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi import APIRouter
 from datetime import datetime
 from io import BytesIO
 from PIL import Image
 from app.services.MinioService import MinioService
 from app.services.DBService import db_service
+from app.services.AuthService import auth_service
 from app.models.base import User, Image
-from app.models.schemas import ImageGenerationRequest
+
 import logging
 
 router = APIRouter(prefix="/api/v1", tags=["image_generation"])
@@ -24,9 +26,8 @@ pipe = StableDiffusionPipeline.from_pretrained(
 pipe = pipe.to("cuda")
 
 @router.post("/generate-image")
-async def create_image(
-    request: ImageGenerationRequest,
-    # user: str = Depends(get_current_user) # ПОТОМ УБРАТЬ
+async def create_image( user: Annotated[str, Depends(auth_service.authenticate_user)],
+    request: ImageGenerationRequest
 ):
     try:
         generated_image = pipe(

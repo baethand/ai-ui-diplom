@@ -1,18 +1,20 @@
+from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
 from datetime import datetime
 from sqlalchemy import or_
 from app.services.AuthService import auth_service
 from app.services.DBService import db_service
-from app.models.user import UserCreateRequest, Token
+from app.models.user import UserCreateRequest, UserLoginRequest
 from app.models.base import User
+from app.models.token import *
 
 router = APIRouter(prefix="/api/v1", tags=["auth"])
 
 @router.post("/register", response_model=Token)
-async def register(user_data: UserCreateRequest):
+async def register(
+    user_data: Annotated[UserCreateRequest, Depends()],
+):
     with db_service.get_session() as session:
-        # Check for existing user (fixed logical OR in filter)
         existing_user = session.query(User).filter(
             or_(
                 User.username == user_data.username,
@@ -26,58 +28,63 @@ async def register(user_data: UserCreateRequest):
                 detail="Username or email already registered"
             )
 
-        # Create new user
         hashed_password = auth_service.get_password_hash(user_data.password)
         new_user = User(
             username=user_data.username,
             email=user_data.email,
             hashed_password=hashed_password,
-            disabled=False,
-            created_at=datetime.utcnow(),
-            last_login=datetime.utcnow()
+            is_active=True,
+            is_superuser=False,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+            last_login=datetime.now()
         )
         
         session.add(new_user)
         session.commit()
         session.refresh(new_user)
 
-        # Generate tokens
         access_token = await auth_service.create_access_token(new_user)
         refresh_token = await auth_service.create_refresh_token(new_user)
 
-        return {
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "token_type": "bearer"
-        }
-
-@router.post("/token", response_model=Token)
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = await auth_service.authenticate_user(form_data.username, form_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
+        return Token(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_type="bearer"
         )
-    
-    # Обновляем время последнего входа
+
+@router.post("/login", response_model=Token)
+async def login(
+    user_data: Annotated[UserLoginRequest, Depends()],
+):
     with db_service.get_session() as session:
-        db_user = session.query(User).filter(User.username == user.username).first()
-        db_user.last_login = datetime.utcnow()
+        user = session.query(User).filter(
+            or_(
+                User.username == user_data.username_or_email,
+                User.email == user_data.username_or_email
+            )
+        ).first()
+
+        if not user or not auth_service.verify_password(user_data.password, user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid username/email or password"
+            )
+
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User account is disabled"
+            )
+
+        user.last_login = datetime.utcnow()
         session.commit()
 
-    # Генерация токенов
-    user_dict = user.dict()
-    access_token = await auth_service.create_access_token(user_dict)
-    refresh_token = await auth_service.create_refresh_token(user_dict)
+        access_token = await auth_service.create_access_token(user)
+        refresh_token = await auth_service.create_refresh_token(user)
 
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer"
-    }
-
-# @router.get("/users/me", response_model=UserInDB)
-# async def read_users_me(current_user: UserInDB = Depends(auth_service.get_current_active_user)):
-#     return current_user
+        return Token(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_type="bearer"
+        )
