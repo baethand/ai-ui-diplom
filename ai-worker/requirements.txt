@@ -13,3 +13,5 @@ minio
 pydantic-settings
 psycopg2
 accelerate
+alembic
+asyncpg

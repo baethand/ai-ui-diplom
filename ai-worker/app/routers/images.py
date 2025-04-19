@@ -11,6 +11,7 @@ from app.services.MinioService import MinioService
 from app.services.DBService import db_service
 from app.services.AuthService import auth_service
 from app.models.base import User, Image
+from app.dependencies import get_current_user
 
 import logging
 
@@ -26,7 +27,7 @@ pipe = StableDiffusionPipeline.from_pretrained(
 pipe = pipe.to("cuda")
 
 @router.post("/generate-image")
-async def create_image( user: Annotated[str, Depends(auth_service.authenticate_user)],
+async def create_image( user: Annotated[str, Depends(auth_service.get_current_user)],
     request: ImageGenerationRequest
 ):
     try:
@@ -53,11 +54,12 @@ async def create_image( user: Annotated[str, Depends(auth_service.authenticate_u
             content_type="image/png"
         )
 
-        
+        image_url = minio.get_image_url(filename)
+
         # 4. Запись в БД через контекстный менеджер
         with db_service.get_session() as session:
             db_image = Image(
-                user_id=1,
+                user_id=user.user_id,
                 name=filename,
                 width=request.width,
                 height=request.height,
@@ -68,16 +70,15 @@ async def create_image( user: Annotated[str, Depends(auth_service.authenticate_u
             )
             session.add(db_image)
             session.commit()
-            session.refresh(db_image)
 
             # Получаем URL только после коммита (если нужен ID)
             image_url = minio.get_image_url(filename)
         
-        return {
-            "status": "success",
-            "image_url": image_url,
-            "image_id": db_image.id,
-        }
+            return {
+                "status": "success",
+                "image_url": image_url,
+                "image_id": db_image.id,
+            }
         
     except Exception as e:
         if 'session' in locals():

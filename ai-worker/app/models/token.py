@@ -14,3 +14,10 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: Optional[str] = None
+
+class TokenPayload(BaseModel):
+    username: str
+    user_id: int
+    email: str
+    is_active: bool
+    is_superuser: bool

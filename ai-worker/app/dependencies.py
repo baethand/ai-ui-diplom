@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
@@ -9,6 +9,7 @@ security = HTTPBearer()
 
 class TokenData(BaseModel):
     username: str | None = None
+    user_id: str | None = None
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
@@ -22,6 +23,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         # Декодируем и проверяем токен
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         username: str = payload.get("sub")
+        user_id: str = payload.get("user_id")
         isUser: bool = payload.get("isUser")
         if username is None or isUser is False:
             raise credentials_exception
@@ -35,7 +37,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
                 headers={"WWW-Authenticate": "Bearer"},
             )
             
-        return TokenData(username=username)
+        return TokenData(username=username, user_id=user_id)
         
     except JWTError:
         raise credentials_exception

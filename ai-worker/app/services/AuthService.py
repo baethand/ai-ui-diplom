@@ -1,12 +1,12 @@
 from datetime import datetime, timedelta
 from typing import Optional
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer, OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from app.config import settings
 from app.models.base import User
-from app.models.token import TokenData
+from app.models.token import TokenData, TokenPayload
 import logging
 
 logger = logging.getLogger(__name__)
@@ -55,30 +55,40 @@ class AuthService:
             expires_delta=self.refresh_token_expire
         )
 
-    async def decode_token(self, token: str) -> TokenData:
-        credentials_exception = HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-        try:
-            payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
-            username: str = payload.get("sub")
-            if username is None:
-                raise credentials_exception
-            return TokenData(username=username)
-        except JWTError as e:
-            logger.error(f"JWT Error: {e}")
-            raise credentials_exception
-    
-    async def authenticate_user(self, token: str = Depends(oauth2_scheme)) -> str:
-        token_data = await self.decode_token(token)
-        if not token_data.username:
+    async def get_current_user(self, credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False))):
+        if credentials is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid authentication credentials",
+                detail="Authorization token missing",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        return token_data.username
+
+        token = credentials.credentials
+        try:
+            payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
+            token_payload = TokenPayload(
+                username=payload.get("sub"),
+                user_id=payload.get("user_id"),
+                email=payload.get("email"),
+                is_active=payload.get("is_active"),
+                is_superuser=payload.get("is_superuser"),
+            )
+
+            if not token_payload.username or not token_payload.user_id or not token_payload.is_active:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid token claims",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
+            return token_payload
+
+        except JWTError as e:
+            logger.warning(f"Token decode error: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
 auth_service = AuthService()
