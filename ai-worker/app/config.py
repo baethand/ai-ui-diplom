@@ -42,15 +42,18 @@ class Settings(BaseSettings):
     
     # Performance
     TORCH_DTYPE: str = Field("float16", env="TORCH_DTYPE")
-    MAX_WORKERS: int = Field(4, env="MAX_WORKERS")
+    MAX_WORKERS: int = Field(2, env="MAX_WORKERS")
     LOW_CPU_MEM_USAGE: bool = Field(True, env="LOW_CPU_MEM_USAGE")
     ENABLE_ATTENTION_SLICING: bool = Field(True, env="ENABLE_ATTENTION_SLICING")
     
-
 
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
         extra = "ignore"
+
+ALLOWED_MODELS = {
+        "stabilityai/stable-diffusion-2-1"
+    }
 
 settings = Settings()

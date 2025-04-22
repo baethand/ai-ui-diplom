@@ -1,8 +1,8 @@
+from concurrent.futures import ThreadPoolExecutor
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 import torch
 from app.models.schemas import ImageGenerationRequest
-from diffusers import StableDiffusionPipeline
 from fastapi import APIRouter
 from datetime import datetime
 from io import BytesIO
@@ -10,33 +10,38 @@ from PIL import Image
 from app.services.MinioService import MinioService
 from app.services.DBService import db_service
 from app.services.AuthService import auth_service
-from app.models.base import User, Image
-from app.dependencies import get_current_user
+from app.models.base import Image
+from app.services.PipelineService import get_pipeline
+from app.config import ALLOWED_MODELS, settings
 
 import logging
+
+executor = ThreadPoolExecutor(settings.MAX_WORKERS)
 
 router = APIRouter(prefix="/api/v1", tags=["image_generation"])
 minio = MinioService()
 log = logging.getLogger(__name__)
 
-pipe = StableDiffusionPipeline.from_pretrained(
-            "stabilityai/stable-diffusion-2-1",
-            torch_dtype=torch.float16,
-            low_cpu_mem_usage=True
-        )
-pipe = pipe.to("cuda")
-
 @router.post("/generate-image")
 async def create_image( user: Annotated[str, Depends(auth_service.get_current_user)],
     request: ImageGenerationRequest
 ):
+    if request.model_path not in ALLOWED_MODELS:
+        raise HTTPException(status_code=400, detail=f"Модель '{request.model_path}' не поддерживается")
+
     try:
+
+        pipe = get_pipeline(request.model_path)
+
+        generator = torch.manual_seed(request.seed)
+
         generated_image = pipe(
             request.prompt,
             num_inference_steps=request.num_inference_steps,
             guidance_scale=request.guidance_scale,
             height=request.height,
-            width=request.width
+            width=request.width,
+            generator=generator
         ).images[0]
         
         # 2. Конвертация в BytesIO (файлоподобный объект)
