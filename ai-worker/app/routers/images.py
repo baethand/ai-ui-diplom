@@ -1,7 +1,7 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 import torch
 from app.models.schemas import ImageGenerationRequest
 from fastapi import APIRouter
@@ -14,6 +14,7 @@ from app.services.AuthService import auth_service
 from app.models.base import Image
 from app.services.PipelineService import get_pipeline
 from app.config import ALLOWED_MODELS, settings
+from app.models.images import ImageResponse
 
 import logging
 
@@ -32,7 +33,7 @@ def generate_image_sync(request, user):
         guidance_scale=request.guidance_scale,
         height=request.height,
         width=request.width,
-        generator=generator
+        # generator=generator
     ).images[0]
 
     img_byte_arr = BytesIO()
@@ -47,9 +48,9 @@ def generate_image_sync(request, user):
         length=img_byte_arr.getbuffer().nbytes,
         content_type="image/png"
     )
-
+    image_url = minio.get_image_url(filename)
     with db_service.get_session() as session:
-        db_image = Image(
+        image = Image(
             user_id=user.user_id,
             name=filename,
             width=request.width,
@@ -58,14 +59,23 @@ def generate_image_sync(request, user):
             prompt=request.prompt,
             status="completed",
             generated_at=datetime.utcnow(),
+            image_url=image_url
         )
-        session.add(db_image)
+        session.add(image)
         session.commit()
-        image_url = minio.get_image_url(filename)
-        return {
-            "status": "success",
-            "image_url": image_url,
-            "image_id": db_image.id,
+        
+        return { "status": "success",
+            "image": ImageResponse(
+                        id=image.id,
+                        image_url=image.image_url,
+                        name=image.name,
+                        width=image.width,
+                        height=image.height,
+                        model=image.model,
+                        prompt=image.prompt,
+                        created_at=image.created_at,
+                        status=image.status
+                    )
         }
 
 router = APIRouter(prefix="/api/v1", tags=["image_generation"])
@@ -85,3 +95,35 @@ async def create_image(
         return result
     except Exception as e:
         raise HTTPException(500, f"Error: {e}")
+    
+@router.get("/images")
+async def get_images_by_user(
+    user: Annotated[str, Depends(auth_service.get_current_user)],
+    limit: int = Query(20, description="Количество изображений", ge=1, le=100),
+    offset: int = Query(0, description="Смещение", ge=0),
+):
+    with db_service.get_session() as session:
+        
+
+        # Получаем изображения из БД
+        images = session.query(Image)\
+            .filter(Image.user_id == user.user_id)\
+            .offset(offset)\
+            .limit(limit)\
+            .all()
+        
+        # Преобразуем в response model
+        return { "images": [
+                    ImageResponse(
+                        id=image.id,
+                        image_url=image.image_url,
+                        name=image.name,
+                        width=image.width,
+                        height=image.height,
+                        model=image.model,
+                        prompt=image.prompt,
+                        created_at=image.created_at,
+                        status=image.status
+                    )
+                    for image in images
+                ]}

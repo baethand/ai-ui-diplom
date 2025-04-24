@@ -12,7 +12,8 @@ router = APIRouter(prefix="/api/v1", tags=["auth"])
 
 @router.post("/register", response_model=Token)
 async def register(
-    user_data: Annotated[UserCreateRequest, Depends()],
+    # user_data: Annotated[UserCreateRequest, Depends()],
+    user_data: UserCreateRequest,
 ):
     with db_service.get_session() as session:
         existing_user = session.query(User).filter(
@@ -55,13 +56,14 @@ async def register(
 
 @router.post("/login", response_model=Token)
 async def login(
-    user_data: Annotated[UserLoginRequest, Depends()],
+    # user_data: Annotated[UserLoginRequest, Depends()],
+    user_data: UserLoginRequest,
 ):
     with db_service.get_session() as session:
         user = session.query(User).filter(
             or_(
-                User.username == user_data.username_or_email,
-                User.email == user_data.username_or_email
+                User.username == user_data.usernameOrEmail,
+                User.email == user_data.usernameOrEmail
             )
         ).first()
 

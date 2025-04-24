@@ -25,21 +25,19 @@ class Image(Base):
     __tablename__ = "images"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # Внешний ключ
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     name = Column(String, index=True)
     width = Column(Integer, default=512)
     height = Column(Integer, default=512)
     model = Column(String, default="stable-diffusion-2.1")
     prompt = Column(String, nullable=True)
-    negative_prompt = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     generated_at = Column(DateTime, nullable=True)
-    status = Column(String, default="pending")  # pending, completed, failed
+    status = Column(String, default="pending")
+    image_url = Column(String, nullable=True)
 
-    # Связь многие к 1 (Image → User)
     user = relationship("User", back_populates="images")
 
-    # Можно добавить методы для удобства
     def mark_as_completed(self):
         self.status = "completed"
         self.generated_at = datetime.utcnow()
