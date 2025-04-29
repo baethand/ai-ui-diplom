@@ -45,6 +45,9 @@ class Settings(BaseSettings):
     MAX_WORKERS: int = Field(2, env="MAX_WORKERS")
     LOW_CPU_MEM_USAGE: bool = Field(True, env="LOW_CPU_MEM_USAGE")
     ENABLE_ATTENTION_SLICING: bool = Field(True, env="ENABLE_ATTENTION_SLICING")
+
+    DEFAULT_IMAGE_LIMIT: int = Field(30, env="DEFAULT_IMAGE_LIMIT")
+    MAX_IMAGES_PER_USER: int = Field(30, env="MAX_IMAGES_PER_USER")
     
 
     class Config:
@@ -53,7 +56,8 @@ class Settings(BaseSettings):
         extra = "ignore"
 
 ALLOWED_MODELS = {
-        "stabilityai/stable-diffusion-2-1"
+        "stabilityai/stable-diffusion-2-1",
+        "kohbanye/pixel-art-style"
     }
 
 settings = Settings()
