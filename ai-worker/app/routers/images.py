@@ -112,7 +112,6 @@ async def create_image(
     request: ImageGenerationRequest
 ):
     try:
-        # Выполняем sync-функцию в отдельном потоке
         result = await asyncio.get_event_loop().run_in_executor(
             executor, generate_image_sync, request, user
         )
